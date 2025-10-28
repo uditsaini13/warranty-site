@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warranty Activation</title>
+<style>
+  body {
+    font-family: "Inter", sans-serif;
+    background: #f4f6f8;
+    color: #222;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    padding: 2rem;
+    max-width: 420px;
+    text-align: center;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.6rem;
+  }
+  p {
+    margin: 0.4rem 0;
+    font-size: 1rem;
+  }
+  .status {
+    display: inline-block;
+    margin: 0.5rem 0 1rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .active { background: #e0f7e9; color: #0a7d28; }
+  .expired { background: #fdecea; color: #a30000; }
+  .inactive { background: #fff4cc; color: #8a6d00; }
+  .footer {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <h1>Activating Warranty...</h1>
+  <p>Please wait a moment.</p>
+</div>
+
+<script>
+async function activateWarranty() {
+  const card = document.getElementById("card");
+  const token = window.location.pathname.split("/").pop();
+
+  try {
+    const resp = await fetch(
+      `https://eplqighngdzjqjvqeh.supabase.co/functions/v1/activate-warranty?token=${token}`
+    );
+    const data = await resp.json();
+
+    let html = "";
+
+    if (!data.ok && data.reason === "invalid_token") {
+      html = `<h1>Invalid QR Code</h1><p>This warranty link is not recognized.</p>`;
+    } 
+    else if (data.reason === "expired") {
+      html = `<h1>Warranty Expired</h1>
+              <p>Serial: ${data.serial_no}</p>
+              <div class="status expired">Expired</div>`;
+    } 
+    else if (data.status === "activated") {
+      html = `<h1>Warranty Activated</h1>
+              <div class="status active">Active</div>
+              <p><strong>Serial:</strong> ${data.serial_no}</p>
+              <p><strong>Activated On:</strong> ${new Date(data.activated_at).toDateString()}</p>
+              <p><strong>Expires On:</strong> ${new Date(data.expiry_at).toDateString()}</p>
+              <p class="footer">Thank you for choosing The RO World!</p>`;
+    } 
+    else if (data.status === "already_active") {
+      html = `<h1>Product Already Registered</h1>
+              <div class="status active">Active</div>
+              <p><strong>Serial:</strong> ${data.serial_no}</p>
+              <p><strong>Activated On:</strong> ${new Date(data.activated_at).toDateString()}</p>
+              <p><strong>Expires On:</strong> ${new Date(data.expiry_at).toDateString()}</p>
+              <p class="footer">No need to scan again — your warranty is safe.</p>`;
+    } 
+    else {
+      html = `<h1>Something went wrong</h1>
+              <p>Please contact support.</p>`;
+    }
+
+    card.innerHTML = html;
+  } catch (err) {
+    card.innerHTML = `<h1>Error</h1><p>Could not reach the server.</p>`;
+    console.error(err);
+  }
+}
+
+activateWarranty();
+</script>
+</body>
+</html>
